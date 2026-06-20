@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Base Materials Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg: #15120f;
+    --surface: #201b16;
+    --surface-2: #2a2420;
+    --border: #3a332b;
+    --text: #ece6da;
+    --text-dim: #a89e8c;
+    --accent: #9b6bdb;
+    --accent-light: #c4a3f2;
+    --accent-dim: #5a3f85;
+    --gold: #d1a345;
+    --green: #6fae6f;
+    --danger: #c0594f;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap{ max-width: 760px; margin: 0 auto; padding: 20px 16px 70px; }
+
+  header{ margin-bottom: 14px; }
+
+  h1{
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    font-size: 15px;
+    line-height: 1.6;
+    letter-spacing: 0.5px;
+    color: var(--accent-light);
+    margin: 0 0 4px;
+  }
+
+  .subtitle{ color: var(--text-dim); font-size: 13px; margin: 0 0 16px; }
+
+  .overall-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+
+  .overall-top{ display:flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; gap: 8px; }
+  .overall-pct{ font-size: 22px; font-weight: 700; color: var(--accent-light); }
+  .overall-sub{ font-size: 12.5px; color: var(--text-dim); text-align: right; }
+
+  .bar{ height: 10px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; position: relative; }
+  .bar-fill{ height: 100%; width: 0%; border-radius: 6px; background: linear-gradient(90deg, var(--accent-dim), var(--accent), var(--accent-light)); transition: width 0.3s ease; position: relative; }
+  .bar-fill.mini{ border-radius: 4px; }
+
+  @media (prefers-reduced-motion: no-preference){
+    .bar-fill::after{
+      content:""; position:absolute; inset:0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+      animation: shimmer 2.6s linear infinite;
+    }
+  }
+  @keyframes shimmer{ 0%{ transform: translateX(-100%); } 100%{ transform: translateX(100%); } }
+
+  .toolbar{ display:flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+  .toolbar input[type="search"]{
+    flex: 1; min-width: 140px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 9px 12px; font-size: 13.5px; font-family: inherit;
+  }
+  .toolbar select{
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 9px 10px; font-size: 12.5px; font-family: inherit;
+  }
+  .toolbar input::placeholder{ color: var(--text-dim); }
+  .toolbar input:focus, .toolbar select:focus{ outline: 2px solid var(--accent-dim); outline-offset: 1px; }
+
+  .manage-row{ display:flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+
+  button{ cursor: pointer; }
+
+  .ghost-btn{
+    background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+    border-radius: 8px; padding: 8px 12px; font-size: 12.5px; font-family: inherit;
+  }
+  .ghost-btn:hover{ border-color: var(--accent-dim); color: var(--accent-light); }
+
+  .panel{
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px; margin-bottom: 14px;
+  }
+  .panel[hidden]{ display:none; }
+  .panel-row{ display:flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .panel-row input, .panel textarea{
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 7px; padding: 8px 10px; font-size: 13px; font-family: inherit;
+  }
+  .panel-row input[type="text"]{ flex: 2; min-width: 140px; }
+  .panel-row input[type="number"]{ flex: 1; min-width: 90px; }
+  .panel textarea{ width: 100%; resize: vertical; font-family: inherit; }
+  .panel-actions{ display:flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .panel-actions button{
+    background: var(--accent-dim); border: 1px solid var(--accent-dim); color: #fff;
+    border-radius: 7px; padding: 8px 14px; font-size: 12.5px; font-family: inherit;
+  }
+  .panel-actions button:hover{ background: var(--accent); }
+  .panel-actions button.secondary{ background: transparent; border-color: var(--border); color: var(--text-dim); }
+  .panel-actions button.secondary:hover{ border-color: var(--text-dim); color: var(--text); }
+  .panel-note{ font-size: 12px; color: var(--text-dim); margin: 8px 0 0; }
+  .panel-hint{ font-size: 11.5px; color: var(--text-dim); margin: 0 0 8px; }
+
+  .category{ background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+
+  .category summary{ list-style: none; cursor: pointer; padding: 12px 14px; display:flex; align-items:center; gap: 10px; }
+  .category summary::-webkit-details-marker{ display:none; }
+
+  .cat-arrow{ color: var(--text-dim); font-size: 11px; transition: transform 0.2s ease; flex-shrink:0; }
+  details[open] > summary .cat-arrow{ transform: rotate(90deg); }
+
+  .cat-title{ flex: 1; min-width: 0; }
+  .cat-name{ font-weight: 600; font-size: 14px; }
+  .cat-count{ color: var(--text-dim); font-size: 11.5px; margin-top: 2px; }
+  .cat-bar-wrap{ width: 64px; flex-shrink: 0; }
+
+  .fill-all-btn{
+    flex-shrink:0; background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+    border-radius: 6px; padding: 5px 8px; font-size: 11px; font-family: inherit;
+  }
+  .fill-all-btn:hover{ border-color: var(--accent-dim); color: var(--accent-light); }
+
+  .items{ border-top: 1px solid var(--border); }
+
+  .item{ border-bottom: 1px solid var(--border); padding: 10px 14px; }
+  .item:last-child{ border-bottom: none; }
+
+  .item-view{ display:flex; align-items:center; gap: 10px; flex-wrap: wrap; }
+
+  .dot{ width: 9px; height: 9px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); flex-shrink: 0; }
+  .dot.partial{ background: var(--gold); border-color: var(--gold); }
+  .dot.complete{ background: var(--green); border-color: var(--green); }
+
+  .item-info{ flex: 1; min-width: 140px; }
+  .item-name{ font-size: 13.5px; font-weight: 500; }
+  .item-need{ font-size: 11.5px; color: var(--text-dim); margin-top: 1px; }
+  .item-need .left{ color: var(--gold); }
+  .item-need .done{ color: var(--green); }
+
+  .item-controls{ display:flex; align-items:center; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
+
+  .item-controls input{
+    width: 56px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 6px; font-size: 13px; text-align: center; font-family: inherit;
+  }
+  .item-controls input:focus{ outline: 2px solid var(--accent-dim); outline-offset: 1px; }
+
+  .item-controls button{
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim);
+    border-radius: 6px; padding: 6px 8px; font-size: 11.5px; font-family: inherit; white-space: nowrap;
+  }
+  .item-controls button:hover{ border-color: var(--accent-dim); color: var(--accent-light); }
+  .item-controls button.max-btn:hover{ border-color: var(--green); color: var(--green); }
+  .item-controls button.remove-btn:hover{ border-color: var(--danger); color: var(--danger); }
+
+  .item-edit{ display:flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .item-edit input{
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 7px; padding: 7px 9px; font-size: 13px; font-family: inherit;
+  }
+  .item-edit .edit-name{ flex: 2; min-width: 140px; }
+  .item-edit .edit-need{ flex: 1; min-width: 80px; }
+  .item-edit .edit-cat{ flex: 1; min-width: 120px; }
+
+  .no-results{ text-align:center; color: var(--text-dim); font-size: 13px; padding: 30px 0; display:none; }
+
+  footer{ display:flex; justify-content: space-between; align-items:center; margin-top: 18px; gap: 12px; flex-wrap: wrap; }
+  .footer-left{ display:flex; gap: 14px; align-items:center; flex-wrap: wrap; }
+  .restore-link{ background: none; border: none; color: var(--text-dim); font-size: 11.5px; text-decoration: underline; font-family: inherit; padding: 0; }
+  .restore-link:hover{ color: var(--danger); }
+  #resetAllBtn{ background: transparent; border: 1px solid var(--border); color: var(--text-dim); border-radius: 8px; padding: 8px 14px; font-size: 12.5px; font-family: inherit; }
+  #resetAllBtn:hover{ border-color: var(--danger); color: var(--danger); }
+  #saveStatus{ font-size: 11.5px; color: var(--text-dim); }
+
+  .undo-bar{
+    position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%) translateY(20px);
+    background: var(--surface-2); border: 1px solid var(--accent-dim); color: var(--text);
+    border-radius: 9px; padding: 10px 14px; font-size: 13px; display:flex; gap: 14px; align-items:center;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4); max-width: 90vw; z-index: 50;
+  }
+  .undo-bar.show{ opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+  .undo-bar button{ background: none; border: none; color: var(--accent-light); font-weight: 600; font-size: 13px; font-family: inherit; }
+
+  @media (max-width: 420px){
+    .item-controls{ width: 100%; padding-left: 19px; margin-top: 4px; }
+    .cat-bar-wrap{ width: 44px; }
+    .overall-top{ flex-direction: column; align-items: flex-start; }
+    .overall-sub{ text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>BASE MATERIALS</h1>
+    <p class="subtitle">Track quantities, add or remove materials, import a list, export your progress. Everything saves automatically.</p>
+
+    <div class="overall-card">
+      <div class="overall-top">
+        <span class="overall-pct" id="overallPct">0%</span>
+        <span class="overall-sub" id="overallSub">0 of 0 fully stocked</span>
+      </div>
+      <div class="bar"><div class="bar-fill" id="overallFill"></div></div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <input type="search" id="search" placeholder="Search materials">
+    <select id="filterSelect">
+      <option value="all">All items</option>
+      <option value="todo">Not started</option>
+      <option value="progress">In progress</option>
+      <option value="done">Complete</option>
+    </select>
+    <select id="sortSelect">
+      <option value="default">Sort: default</option>
+      <option value="name">Sort: name A-Z</option>
+      <option value="needed">Sort: largest quantity first</option>
+      <option value="remaining">Sort: most remaining first</option>
+    </select>
+  </div>
+
+  <div class="manage-row">
+    <button type="button" class="ghost-btn" id="addToggleBtn">+ Add material</button>
+    <button type="button" class="ghost-btn" id="importToggleBtn">Import list</button>
+    <button type="button" class="ghost-btn" id="exportToggleBtn">Export list</button>
+  </div>
+
+  <div class="panel" id="addPanel" hidden>
+    <div class="panel-row">
+      <input type="text" id="newName" placeholder="Material name">
+      <input type="number" id="newNeed" placeholder="Qty needed" min="1">
+      <input type="text" id="newCat" placeholder="Category (existing or new)" list="categoryOptions">
+    </div>
+    <div class="panel-actions">
+      <button type="button" id="addSubmitBtn">Add material</button>
+      <button type="button" class="secondary" id="addCancelBtn">Cancel</button>
+    </div>
+  </div>
+
+  <div class="panel" id="importPanel" hidden>
+    <p class="panel-hint">Paste a list like: Oak planks x520 Warped stairs x335 Stone bricks x130. Items that already exist get their quantity updated, new ones are added under "Imported".</p>
+    <textarea id="importText" rows="4" placeholder="Paste your material list here"></textarea>
+    <div class="panel-actions" style="margin-top:8px;">
+      <button type="button" id="importSubmitBtn">Import list</button>
+      <button type="button" class="secondary" id="importCancelBtn">Cancel</button>
+    </div>
+    <p class="panel-note" id="importResult"></p>
+  </div>
+
+  <div class="panel" id="exportPanel" hidden>
+    <textarea id="exportText" rows="8" readonly></textarea>
+    <div class="panel-actions" style="margin-top:8px;">
+      <button type="button" id="exportCopyBtn">Copy to clipboard</button>
+      <button type="button" class="secondary" id="exportCancelBtn">Close</button>
+    </div>
+    <p class="panel-note" id="exportStatus"></p>
+  </div>
+
+  <datalist id="categoryOptions"></datalist>
+
+  <div id="categories"></div>
+  <p class="no-results" id="noResults">No materials match your search or filter.</p>
+
+  <footer>
+    <div class="footer-left">
+      <button type="button" id="resetAllBtn">Reset all progress</button>
+      <button type="button" class="restore-link" id="restoreDefaultsBtn">Restore default list</button>
+    </div>
+    <span id="saveStatus"></span>
+  </footer>
+
+</div>
+
+<div class="undo-bar" id="undoBar">
+  <span id="undoMsg"></span>
+  <button type="button" id="undoBtn">Undo</button>
+</div>
+
+<script>
+(function(){
+
+  const STORAGE_KEY = 'tracker-state';
+
+  const DEFAULT_CATEGORIES = [
+    { key: 'wood',      name: 'Wood & Logs' },
+    { key: 'stairs',    name: 'Stairs' },
+    { key: 'slabs',     name: 'Slabs' },
+    { key: 'stone',     name: 'Stone & Walls' },
+    { key: 'trapdoors', name: 'Trapdoors & Doors' },
+    { key: 'fences',    name: 'Fences & Gates' },
+    { key: 'glass',     name: 'Glass' },
+    { key: 'decor',     name: 'Lighting & Decor' },
+    { key: 'utility',   name: 'Crafting & Utility Blocks' },
+    { key: 'rare',      name: 'Rare & Misc' }
+  ];
+
+  function defaultState(){
+    return {
+      categories: DEFAULT_CATEGORIES.map(function(c){ return { key:c.key, name:c.name }; }),
+      items: [],
+      have: {}
+    };
+  }
+
+  let state = defaultState();
+  let saveTimer = null;
+  let lastUndo = null;
+  let undoTimer = null;
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c]; });
+  }
+  function escapeAttr(s){ return escapeHtml(s).replace(/"/g, '&quot;'); }
+
+  function slugify(s){
+    return (s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'item';
+  }
+  function uniqueId(base, existingSet){
+    let id = base, n = 2;
+    while (existingSet.has(id)){ id = base + '-' + n; n++; }
+    return id;
+  }
+  function categoryName(key){
+    const c = state.categories.find(function(c){ return c.key === key; });
+    return c ? c.name : 'Misc';
+  }
+  function findOrCreateCategory(name){
+    name = (name || '').trim();
+    if (!name) name = 'Misc';
+    const existing = state.categories.find(function(c){ return c.name.toLowerCase() === name.toLowerCase(); });
+    if (existing) return existing.key;
+    const key = uniqueId(slugify(name), new Set(state.categories.map(function(c){ return c.key; })));
+    state.categories.push({ key: key, name: name });
+    return key;
+  }
+  function getHave(id){
+    const v = state.have[id];
+    return (typeof v === 'number' && v >= 0) ? v : 0;
+  }
+
+  function setSaveStatus(text){ document.getElementById('saveStatus').textContent = text; }
+
+  function persist(){
+    clearTimeout(saveTimer);
+    setSaveStatus('Saving...');
+    saveTimer = setTimeout(async function(){
+      try{
+        await window.storage.set(STORAGE_KEY, JSON.stringify(state));
+        setSaveStatus('Saved');
+      }catch(e){
+        setSaveStatus('Not saved: changes will be lost on reload');
+      }
+    }, 350);
+  }
+
+  function showUndo(message, onUndo){
+    clearTimeout(undoTimer);
+    lastUndo = onUndo;
+    document.getElementById('undoMsg').textContent = message;
+    document.getElementById('undoBar').classList.add('show');
+    undoTimer = setTimeout(hideUndo, 6000);
+  }
+  function hideUndo(){
+    document.getElementById('undoBar').classList.remove('show');
+    lastUndo = null;
+  }
+  document.getElementById('undoBtn').addEventListener('click', function(){
+    if (lastUndo){ const fn = lastUndo; hideUndo(); fn(); }
+  });
+
+  // ---- mutations ----
+
+  function addItem(name, need, catName){
+    name = (name || '').trim();
+    if (!name) return false;
+    need = parseInt(need, 10);
+    if (isNaN(need) || need < 1) need = 1;
+    const catKey = findOrCreateCategory(catName || 'Misc');
+    const id = uniqueId(slugify(name), new Set(state.items.map(function(i){ return i.id; })));
+    state.items.push({ id: id, name: name, need: need, cat: catKey });
+    state.have[id] = 0;
+    return true;
+  }
+
+  function updateItem(id, fields){
+    const item = state.items.find(function(i){ return i.id === id; });
+    if (!item) return;
+    if (fields.name !== undefined){
+      const n = fields.name.trim();
+      if (n) item.name = n;
+    }
+    if (fields.need !== undefined){
+      const nd = parseInt(fields.need, 10);
+      if (!isNaN(nd) && nd >= 1) item.need = nd;
+    }
+    if (fields.categoryName !== undefined && fields.categoryName.trim()){
+      item.cat = findOrCreateCategory(fields.categoryName);
+    }
+  }
+
+  function deleteItem(id){
+    const idx = state.items.findIndex(function(i){ return i.id === id; });
+    if (idx === -1) return;
+    const item = state.items[idx];
+    const haveVal = getHave(id);
+    state.items.splice(idx, 1);
+    delete state.have[id];
+    persist();
+    render();
+    showUndo('Removed "' + item.name + '"', function(){
+      state.items.splice(Math.min(idx, state.items.length), 0, item);
+      state.have[id] = haveVal;
+      persist();
+      render();
+    });
+  }
+
+  function parseImportText(text){
+    const regex = /([A-Za-z][A-Za-z'\-]*(?:\s[A-Za-z][A-Za-z'\-]*)*)\s+x?\s*(\d+)\b/g;
+    const results = [];
+    let m;
+    while ((m = regex.exec(text)) !== null){
+      const name = m[1].trim();
+      const need = parseInt(m[2], 10);
+      if (name && need > 0) results.push({ name: name, need: need });
+    }
+    return results;
+  }
+
+  function bulkImport(text){
+    const parsed = parseImportText(text);
+    let updated = 0, added = 0;
+    parsed.forEach(function(p){
+      const existing = state.items.find(function(i){ return i.name.toLowerCase() === p.name.toLowerCase(); });
+      if (existing){
+        existing.need = p.need;
+        updated++;
+      } else {
+        addItem(p.name, p.need, 'Imported');
+        added++;
+      }
+    });
+    return { updated: updated, added: added, total: parsed.length };
+  }
+
+  function resetAllHave(){
+    const snapshot = Object.assign({}, state.have);
+    state.have = {};
+    persist();
+    render();
+    showUndo('Progress reset for all materials', function(){
+      state.have = snapshot;
+      persist();
+      render();
+    });
+  }
+
+  function buildExportText(){
+    const lines = [];
+    state.categories.forEach(function(cat){
+      const items = state.items.filter(function(i){ return i.cat === cat.key; });
+      if (items.length === 0) return;
+      lines.push('-- ' + cat.name + ' --');
+      items.forEach(function(i){
+        lines.push(i.name + ': ' + getHave(i.id) + ' / ' + i.need);
+      });
+      lines.push('');
+    });
+    return lines.join('\n').trim();
+  }
+
+  // ---- rendering ----
+
+  function buildItemRow(item){
+    const have = getHave(item.id);
+    const row = document.createElement('div');
+    row.className = 'item';
+
+    let dotClass = '';
+    let needHtml = 'Need ' + item.need;
+    if (have >= item.need){
+      dotClass = 'complete';
+      needHtml = 'Need ' + item.need + ' &middot; <span class="done">done</span>';
+    } else if (have > 0){
+      dotClass = 'partial';
+      needHtml = 'Need ' + item.need + ' &middot; <span class="left">' + (item.need - have) + ' left</span>';
+    }
+
+    row.innerHTML =
+      '<div class="item-view">' +
+        '<span class="dot ' + dotClass + '"></span>' +
+        '<div class="item-info"><div class="item-name">' + escapeHtml(item.name) + '</div>' +
+        '<div class="item-need">' + needHtml + '</div></div>' +
+        '<div class="item-controls">' +
+          '<input type="number" inputmode="numeric" min="0" class="have-input" value="' + have + '">' +
+          '<button type="button" class="step-btn">+10</button>' +
+          '<button type="button" class="max-btn">Max</button>' +
+          '<button type="button" class="edit-btn">Edit</button>' +
+          '<button type="button" class="remove-btn">Remove</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="item-edit" hidden>' +
+        '<input type="text" class="edit-name" value="' + escapeAttr(item.name) + '" placeholder="Name">' +
+        '<input type="number" class="edit-need" min="1" value="' + item.need + '" placeholder="Qty needed">' +
+        '<input type="text" class="edit-cat" value="' + escapeAttr(categoryName(item.cat)) + '" list="categoryOptions" placeholder="Category">' +
+        '<div class="panel-actions">' +
+          '<button type="button" class="save-edit-btn">Save</button>' +
+          '<button type="button" class="cancel-edit-btn secondary">Cancel</button>' +
+        '</div>' +
+      '</div>';
+
+    const view = row.querySelector('.item-view');
+    const edit = row.querySelector('.item-edit');
+    const haveInput = row.querySelector('.have-input');
+
+    function commitHave(val){
+      let v = parseInt(val, 10);
+      if (isNaN(v) || v < 0) v = 0;
+      state.have[item.id] = v;
+      persist();
+      render();
+    }
+
+    haveInput.addEventListener('change', function(){ commitHave(haveInput.value); });
+    haveInput.addEventListener('blur', function(){ commitHave(haveInput.value); });
+
+    row.querySelector('.step-btn').addEventListener('click', function(){
+      state.have[item.id] = getHave(item.id) + 10;
+      persist(); render();
+    });
+    row.querySelector('.max-btn').addEventListener('click', function(){
+      state.have[item.id] = item.need;
+      persist(); render();
+    });
+    row.querySelector('.edit-btn').addEventListener('click', function(){
+      view.hidden = true; edit.hidden = false;
+    });
+    row.querySelector('.cancel-edit-btn').addEventListener('click', function(){
+      edit.hidden = true; view.hidden = false;
+    });
+    row.querySelector('.save-edit-btn').addEventListener('click', function(){
+      updateItem(item.id, {
+        name: row.querySelector('.edit-name').value,
+        need: row.querySelector('.edit-need').value,
+        categoryName: row.querySelector('.edit-cat').value
+      });
+      persist(); render();
+    });
+    row.querySelector('.remove-btn').addEventListener('click', function(){
+      deleteItem(item.id);
+    });
+
+    return row;
+  }
+
+  function render(){
+    const openKeys = new Set();
+    document.querySelectorAll('.category[open]').forEach(function(d){ openKeys.add(d.dataset.key); });
+
+    const root = document.getElementById('categories');
+    root.innerHTML = '';
+
+    const query = document.getElementById('search').value.trim().toLowerCase();
+    const filterVal = document.getElementById('filterSelect').value;
+    const sortVal = document.getElementById('sortSelect').value;
+
+    let anyVisible = false;
+
+    state.categories.forEach(function(cat){
+      const allItems = state.items.filter(function(i){ return i.cat === cat.key; });
+      if (allItems.length === 0) return;
+
+      let visible = allItems.filter(function(i){
+        return !query || i.name.toLowerCase().indexOf(query) !== -1;
+      });
+      visible = visible.filter(function(i){
+        const h = getHave(i.id);
+        if (filterVal === 'todo') return h <= 0;
+        if (filterVal === 'progress') return h > 0 && h < i.need;
+        if (filterVal === 'done') return h >= i.need;
+        return true;
+      });
+      if (sortVal === 'name'){
+        visible = visible.slice().sort(function(a, b){ return a.name.localeCompare(b.name); });
+      } else if (sortVal === 'needed'){
+        visible = visible.slice().sort(function(a, b){ return b.need - a.need; });
+      } else if (sortVal === 'remaining'){
+        visible = visible.slice().sort(function(a, b){
+          const ra = Math.max(a.need - getHave(a.id), 0);
+          const rb = Math.max(b.need - getHave(b.id), 0);
+          return rb - ra;
+        });
+      }
+
+      if (visible.length === 0) return;
+      anyVisible = true;
+
+      let needTotal = 0, haveTotal = 0, doneCount = 0;
+      allItems.forEach(function(i){
+        const h = Math.min(getHave(i.id), i.need);
+        needTotal += i.need; haveTotal += h;
+        if (getHave(i.id) >= i.need) doneCount++;
+      });
+      const pct = needTotal ? Math.round((haveTotal / needTotal) * 100) : 0;
+
+      const details = document.createElement('details');
+      details.className = 'category';
+      details.dataset.key = cat.key;
+
+      const summary = document.createElement('summary');
+      summary.innerHTML =
+        '<span class="cat-arrow">&#9656;</span>' +
+        '<span class="cat-title"><div class="cat-name">' + escapeHtml(cat.name) + '</div>' +
+        '<div class="cat-count">' + doneCount + ' of ' + allItems.length + ' full, ' + pct + '%</div></span>' +
+        '<div class="cat-bar-wrap"><div class="bar"><div class="bar-fill mini" style="width:' + pct + '%"></div></div></div>' +
+        '<button type="button" class="fill-all-btn" data-cat="' + cat.key + '">Fill all</button>';
+      details.appendChild(summary);
+
+      summary.querySelector('.fill-all-btn').addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        allItems.forEach(function(i){ state.have[i.id] = i.need; });
+        persist(); render();
+      });
+
+      const itemsWrap = document.createElement('div');
+      itemsWrap.className = 'items';
+      visible.forEach(function(item){ itemsWrap.appendChild(buildItemRow(item)); });
+      details.appendChild(itemsWrap);
+
+      root.appendChild(details);
+      if (openKeys.has(cat.key) || query) details.open = true;
+    });
+
+    document.getElementById('noResults').style.display = anyVisible ? 'none' : 'block';
+
+    let needTotalAll = 0, haveTotalAll = 0, doneAll = 0;
+    state.items.forEach(function(i){
+      const h = Math.min(getHave(i.id), i.need);
+      needTotalAll += i.need; haveTotalAll += h;
+      if (getHave(i.id) >= i.need) doneAll++;
+    });
+    const pctAll = needTotalAll ? Math.round((haveTotalAll / needTotalAll) * 100) : 0;
+    document.getElementById('overallFill').style.width = pctAll + '%';
+    document.getElementById('overallPct').textContent = pctAll + '%';
+    document.getElementById('overallSub').textContent = doneAll + ' of ' + state.items.length + ' fully stocked';
+
+    const datalist = document.getElementById('categoryOptions');
+    datalist.innerHTML = '';
+    state.categories.forEach(function(c){
+      const opt = document.createElement('option');
+      opt.value = c.name;
+      datalist.appendChild(opt);
+    });
+  }
+
+  // ---- static control wiring ----
+
+  function hideAllPanels(){
+    ['addPanel', 'importPanel', 'exportPanel'].forEach(function(id){
+      document.getElementById(id).hidden = true;
+    });
+  }
+
+  document.getElementById('search').addEventListener('input', render);
+  document.getElementById('filterSelect').addEventListener('change', render);
+  document.getElementById('sortSelect').addEventListener('change', render);
+
+  document.getElementById('addToggleBtn').addEventListener('click', function(){
+    const panel = document.getElementById('addPanel');
+    const wasHidden = panel.hidden;
+    hideAllPanels();
+    panel.hidden = !wasHidden;
+    if (!panel.hidden) document.getElementById('newName').focus();
+  });
+  document.getElementById('addCancelBtn').addEventListener('click', function(){
+    document.getElementById('addPanel').hidden = true;
+    document.getElementById('newName').value = '';
+    document.getElementById('newNeed').value = '';
+    document.getElementById('newCat').value = '';
+  });
+  document.getElementById('addSubmitBtn').addEventListener('click', function(){
+    const name = document.getElementById('newName').value;
+    const need = document.getElementById('newNeed').value;
+    const cat = document.getElementById('newCat').value;
+    if (!name.trim()){ document.getElementById('newName').focus(); return; }
+    addItem(name, need, cat);
+    persist(); render();
+    document.getElementById('newName').value = '';
+    document.getElementById('newNeed').value = '';
+    document.getElementById('newCat').value = '';
+    document.getElementById('newName').focus();
+  });
+
+  document.getElementById('importToggleBtn').addEventListener('click', function(){
+    const panel = document.getElementById('importPanel');
+    const wasHidden = panel.hidden;
+    hideAllPanels();
+    panel.hidden = !wasHidden;
+  });
+  document.getElementById('importCancelBtn').addEventListener('click', function(){
+    document.getElementById('importPanel').hidden = true;
+    document.getElementById('importText').value = '';
+    document.getElementById('importResult').textContent = '';
+  });
+  document.getElementById('importSubmitBtn').addEventListener('click', function(){
+    const text = document.getElementById('importText').value;
+    const result = bulkImport(text);
+    persist(); render();
+    if (result.total === 0){
+      document.getElementById('importResult').textContent = 'No materials recognized. Try the format "Name x520".';
+    } else {
+      document.getElementById('importResult').textContent =
+        'Updated ' + result.updated + ' existing, added ' + result.added + ' new.';
+    }
+  });
+
+  document.getElementById('exportToggleBtn').addEventListener('click', function(){
+    const panel = document.getElementById('exportPanel');
+    const wasHidden = panel.hidden;
+    hideAllPanels();
+    if (wasHidden){
+      document.getElementById('exportText').value = buildExportText();
+      document.getElementById('exportStatus').textContent = '';
+    }
+    panel.hidden = !wasHidden;
+  });
+  document.getElementById('exportCancelBtn').addEventListener('click', function(){
+    document.getElementById('exportPanel').hidden = true;
+  });
+  document.getElementById('exportCopyBtn').addEventListener('click', async function(){
+    const text = document.getElementById('exportText').value;
+    try{
+      await navigator.clipboard.writeText(text);
+      document.getElementById('exportStatus').textContent = 'Copied to clipboard.';
+    }catch(e){
+      const ta = document.getElementById('exportText');
+      ta.focus(); ta.select();
+      document.getElementById('exportStatus').textContent = 'Could not copy automatically. Text is selected, press Ctrl+C or Cmd+C.';
+    }
+  });
+
+  document.getElementById('resetAllBtn').addEventListener('click', resetAllHave);
+
+  (function(){
+    let confirming = false;
+    let timer = null;
+    const btn = document.getElementById('restoreDefaultsBtn');
+    btn.addEventListener('click', function(){
+      if (!confirming){
+        confirming = true;
+        btn.textContent = 'Click again to restore the default list';
+        timer = setTimeout(function(){ confirming = false; btn.textContent = 'Restore default list'; }, 4000);
+        return;
+      }
+      clearTimeout(timer);
+      confirming = false;
+      btn.textContent = 'Restore default list';
+      state = defaultState();
+      persist();
+      render();
+    });
+  })();
+
+  // ---- init ----
+
+  async function init(){
+    try{
+      const res = await window.storage.get(STORAGE_KEY);
+      if (res && res.value){
+        const parsed = JSON.parse(res.value);
+        if (parsed && Array.isArray(parsed.items) && Array.isArray(parsed.categories)){
+          state = parsed;
+          if (!state.have) state.have = {};
+        }
+      }
+    }catch(e){ /* use defaults */ }
+    render();
+    setSaveStatus('');
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
